@@ -1,0 +1,70 @@
+{
+  "name": "@collabis/client",
+  "version": "0.1.0",
+  "description": "Official JavaScript / TypeScript client for the Collabis API",
+  "license": "MIT",
+  "author": "Megaplan",
+  "homepage": "https://github.com/megaplan/collabis-sdk-js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/megaplan/collabis-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/megaplan/collabis-sdk-js/issues"
+  },
+  "keywords": [
+    "collabis",
+    "api",
+    "sdk",
+    "client",
+    "notion-like",
+    "workspace",
+    "documents"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --check \"**/*.{ts,md,json,yml}\"",
+    "format:write": "prettier --write \"**/*.{ts,md,json,yml}\"",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^2.1.8"
+  }
+}

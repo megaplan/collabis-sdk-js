@@ -1,0 +1,18 @@
+{
+  "name": "collabis-meeting-sync-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sync a voice-meeting transcript into Collabis (subpage + database row)",
+  "scripts": {
+    "sync:subpage": "tsx src/sync-subpage.ts",
+    "sync:database": "tsx src/sync-database.ts"
+  },
+  "dependencies": {
+    "@collabis/client": "^0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
