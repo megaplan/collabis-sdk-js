@@ -63,13 +63,20 @@ export interface RetryOptions {
   maxDelayMs?: number
 }
 
+/**
+ * A source of bearer access tokens. Either a static token string, or a function
+ * that returns one (sync or async) — use a function to refresh transparently
+ * (see `createTokenProvider`).
+ */
+export type TokenProvider = () => string | Promise<string>
+
 export interface ClientOptions {
   /**
-   * OAuth 2.1 bearer access token for `api.collabis.ru`. Optional here so the
-   * token can also be passed per request via `request({ auth })`; most callers
-   * set it once on the client.
+   * OAuth 2.1 bearer access token for `api.collabis.ru`, or a provider function
+   * that returns one (for auto-refresh). Optional here so the token can also be
+   * passed per request via `request({ auth })`; most callers set it once.
    */
-  auth?: string
+  auth?: string | TokenProvider
   /** API origin. Defaults to `https://api.collabis.ru`. */
   baseUrl?: string
   /** Per-request timeout in ms (default 60000). */
@@ -116,7 +123,7 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
  * ```
  */
 export class Client {
-  readonly #auth: string | undefined
+  readonly #auth: string | TokenProvider | undefined
   readonly #baseUrl: string
   readonly #timeoutMs: number
   readonly #logLevel: LogLevel
@@ -160,7 +167,7 @@ export class Client {
   async request<Response = unknown>(params: RequestParameters): Promise<Response> {
     const { path, method, query, body, auth, signal } = params
     const url = this.#buildUrl(path, query)
-    const token = auth ?? this.#auth
+    const token = auth ?? (await this.#resolveAuth())
 
     const headers: Record<string, string> = {
       accept: "application/json",
@@ -217,6 +224,10 @@ export class Client {
     }
     // Exhausted retries on a transient HTTP status (loop `continue`d out).
     throw lastError
+  }
+
+  async #resolveAuth(): Promise<string | undefined> {
+    return typeof this.#auth === "function" ? await this.#auth() : this.#auth
   }
 
   #buildUrl(path: string, query: RequestParameters["query"]): string {

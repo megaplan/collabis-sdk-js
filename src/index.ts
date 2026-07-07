@@ -15,8 +15,9 @@
  */
 
 export { Client } from "./Client"
-export type { ClientOptions, RetryOptions, RequestParameters } from "./Client"
+export type { ClientOptions, RetryOptions, RequestParameters, TokenProvider } from "./Client"
 
+export * from "./oauth"
 export * from "./errors"
 export * from "./logging"
 export * from "./helpers"

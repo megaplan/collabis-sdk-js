@@ -52,6 +52,42 @@ Interactive docs and the full OpenAPI spec live at:
 Scopes: read operations need `pages:read`, writes need `pages:write`. A 403 carries a
 `WWW-Authenticate` header describing the missing scope so you can step-up authorization.
 
+### Getting a token with the SDK
+
+Collabis is a **public client** (PKCE, no client secret). The SDK ships an `OAuthClient` that
+runs the authorization-code + PKCE flow and exchanges/refreshes tokens:
+
+```ts
+import { OAuthClient } from "@collabis/client"
+
+const oauth = new OAuthClient({
+  clientId, // from dynamic registration or the developer console
+  redirectUri: "http://127.0.0.1:8765/callback",
+})
+
+// 1. Send the user here; persist `state` + `codeVerifier`.
+const { url, state, codeVerifier } = await oauth.createAuthorizationUrl()
+
+// 2. On the redirect back, verify `state`, then exchange the code:
+const tokens = await oauth.exchangeCode({ code, codeVerifier })
+const collabis = new Client({ auth: tokens.access_token })
+```
+
+`OAuthClient` also has `.register()` (dynamic client registration), `.refreshToken()`,
+`.revoke()`, and `.discover()`. For a runnable CLI that opens the browser and prints a token,
+see the [oauth-cli example](./examples/oauth-cli).
+
+For long-running integrations, keep tokens fresh automatically — pass a token provider as
+`auth` (with the `offline_access` scope for a refresh token):
+
+```ts
+import { createTokenProvider } from "@collabis/client"
+
+const collabis = new Client({
+  auth: createTokenProvider({ oauth, refreshToken, onRefresh: saveTokens }),
+})
+```
+
 ## Quick start
 
 ```ts

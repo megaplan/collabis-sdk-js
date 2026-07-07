@@ -49,6 +49,11 @@ npm run sync:subpage      # or: npm run sync:database
 (use `COLLABIS_BASE_URL=https://api.collabis.ru` to target stage). `COLLABIS_PARENT_PAGE_ID`
 is the page that will receive the subpage (or hold the Meetings database).
 
+Don't have a token yet? Get one with the [oauth-cli example](../oauth-cli) (`npm run login`),
+which runs the OAuth 2.1 + PKCE flow and prints an access token. A production integration would
+instead store the refresh token and pass `createTokenProvider(...)` as the client's `auth` so it
+refreshes on its own.
+
 ## Wiring your provider
 
 Map your provider's post-meeting webhook payload into the [`MeetingTranscript`](./src/meeting.ts)

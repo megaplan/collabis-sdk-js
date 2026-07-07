@@ -1,0 +1,17 @@
+{
+  "name": "collabis-oauth-cli-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Obtain a Collabis access token via the OAuth 2.1 + PKCE loopback flow",
+  "scripts": {
+    "login": "tsx src/login.ts"
+  },
+  "dependencies": {
+    "@collabis/client": "^0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
