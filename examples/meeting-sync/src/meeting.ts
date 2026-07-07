@@ -27,7 +27,7 @@ export const sampleMeeting: MeetingTranscript = {
   summary:
     "The team confirmed the public REST API is ready for partner integrations and agreed " +
     "to ship the JavaScript SDK alongside it. Voice-transcription partners will write meeting " +
-    "notes into Collabis, mirroring the Fireflies → Notion flow.",
+    "notes straight into Collabis, the way meeting-notes tools sync into a workspace.",
   keyPoints: [
     "API is validated on stage end-to-end.",
     "SDK ships with a meeting-sync reference integration.",

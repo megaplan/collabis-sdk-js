@@ -1,8 +1,9 @@
-# Collabis SDK for JavaScript
+# Collabis SDK для JavaScript
 
-Official JavaScript / TypeScript client for the [Collabis](https://collabis.ru) API — a
-clean REST API for pages, blocks, databases, and views. First-class types, ergonomic block
-builders, cursor pagination helpers, automatic retries, and a structured error model.
+Официальный клиент на JavaScript / TypeScript для API [Collabis](https://collabis.ru) —
+чистого REST API для страниц, блоков, баз данных и представлений. Строгие типы, удобные
+билдеры блоков, хелперы курсорной пагинации, автоматические повторы и структурированная
+модель ошибок.
 
 ```ts
 import { Client, block } from "@collabis/client"
@@ -21,64 +22,65 @@ await collabis.pages.create({
 })
 ```
 
-## Installation
+## Установка
 
 ```sh
 npm install @collabis/client
 ```
 
-Requires **Node.js 18+** (uses the global `fetch`). Works in any runtime with a
-WHATWG-compatible `fetch`; pass your own via the `fetch` option otherwise.
+Требуется **Node.js 18+** (используется глобальный `fetch`). Работает в любой среде с
+`fetch` по стандарту WHATWG; иначе передайте свой через опцию `fetch`.
 
-## Authentication
+## Аутентификация
 
-The API uses **OAuth 2.1** (authorization code + PKCE). The SDK takes the resulting
-**bearer access token** — it does not run the OAuth flow for you.
+API использует **OAuth 2.1** (authorization code + PKCE). SDK принимает уже полученный
+**bearer-токен доступа** — сам он OAuth-флоу за вас не выполняет.
 
-1. Register a client and complete the OAuth flow against the issuer to obtain an access
-   token whose audience (`resource`) is `https://api.collabis.ru`.
-2. Pass the token as `auth`:
+1. Зарегистрируйте клиента и пройдите OAuth-флоу на issuer, чтобы получить токен доступа,
+   у которого audience (`resource`) равен `https://api.collabis.ru`.
+2. Передайте токен в `auth`:
 
 ```ts
 const collabis = new Client({ auth: accessToken })
 ```
 
-Interactive docs and the full OpenAPI spec live at:
+Интерактивная документация и полная OpenAPI-спека доступны здесь:
 
 - Swagger UI: `https://api.collabis.ru/v1/docs`
 - OpenAPI JSON: `https://api.collabis.ru/v1/openapi.json`
-- Protected-resource metadata (RFC 9728): `https://api.collabis.ru/.well-known/oauth-protected-resource`
+- Метаданные защищённого ресурса (RFC 9728): `https://api.collabis.ru/.well-known/oauth-protected-resource`
 
-Scopes: read operations need `pages:read`, writes need `pages:write`. A 403 carries a
-`WWW-Authenticate` header describing the missing scope so you can step-up authorization.
+Скоупы: операции чтения требуют `pages:read`, записи — `pages:write`. Ответ 403 несёт
+заголовок `WWW-Authenticate` с описанием недостающего скоупа — по нему можно запросить
+дополнительную авторизацию (step-up).
 
-### Getting a token with the SDK
+### Получение токена через SDK
 
-Collabis is a **public client** (PKCE, no client secret). The SDK ships an `OAuthClient` that
-runs the authorization-code + PKCE flow and exchanges/refreshes tokens:
+Collabis — **публичный клиент** (PKCE, без client secret). В SDK есть `OAuthClient`, который
+выполняет флоу authorization code + PKCE и обменивает/обновляет токены:
 
 ```ts
 import { OAuthClient } from "@collabis/client"
 
 const oauth = new OAuthClient({
-  clientId, // from dynamic registration or the developer console
+  clientId, // из динамической регистрации или консоли разработчика
   redirectUri: "http://127.0.0.1:8765/callback",
 })
 
-// 1. Send the user here; persist `state` + `codeVerifier`.
+// 1. Отправьте пользователя сюда; сохраните `state` + `codeVerifier`.
 const { url, state, codeVerifier } = await oauth.createAuthorizationUrl()
 
-// 2. On the redirect back, verify `state`, then exchange the code:
+// 2. На редиректе обратно проверьте `state`, затем обменяйте код:
 const tokens = await oauth.exchangeCode({ code, codeVerifier })
 const collabis = new Client({ auth: tokens.access_token })
 ```
 
-`OAuthClient` also has `.register()` (dynamic client registration), `.refreshToken()`,
-`.revoke()`, and `.discover()`. For a runnable CLI that opens the browser and prints a token,
-see the [oauth-cli example](./examples/oauth-cli).
+У `OAuthClient` также есть `.register()` (динамическая регистрация клиента),
+`.refreshToken()`, `.revoke()` и `.discover()`. Готовый CLI, который открывает браузер и
+печатает токен, — в [примере oauth-cli](./examples/oauth-cli).
 
-For long-running integrations, keep tokens fresh automatically — pass a token provider as
-`auth` (with the `offline_access` scope for a refresh token):
+Для долгоживущих интеграций держите токены свежими автоматически — передайте в `auth`
+провайдер токена (со скоупом `offline_access`, чтобы получить refresh-токен):
 
 ```ts
 import { createTokenProvider } from "@collabis/client"
@@ -88,29 +90,92 @@ const collabis = new Client({
 })
 ```
 
-## Quick start
+### Мультитенант: подключение аккаунтов ваших пользователей
+
+Если вы — сервис (например, расшифровка встреч) и хотите, чтобы **каждый ваш пользователь
+подключил свой Collabis** по кнопке «Подключить Collabis» — это штатный сценарий. `Client` и
+`OAuthClient` намеренно развязаны: `Client` знает только про токен, `OAuthClient` только
+выдаёт токены. Ничего «однопользовательского» в клиент не зашито.
+
+Один `OAuthClient` (конфиг вашего приложения) обслуживает всех пользователей; разделение —
+только в токенах, которые вы храните per-user.
+
+```ts
+import { Client, OAuthClient, createTokenProvider } from "@collabis/client"
+
+// Один раз на всё приложение: ваш публичный клиент и ваш https-redirect.
+const oauth = new OAuthClient({
+  clientId: process.env.COLLABIS_CLIENT_ID!,
+  redirectUri: "https://app.example.com/collabis/callback",
+})
+
+// Кнопка «Подключить Collabis»: строим ссылку и сохраняем state+codeVerifier
+// в серверной сессии ИМЕННО этого пользователя.
+app.get("/collabis/connect", async (req, res) => {
+  const { url, state, codeVerifier } = await oauth.createAuthorizationUrl()
+  req.session.collabis = { state, codeVerifier }
+  res.redirect(url)
+})
+
+// Колбэк: проверяем state, обмениваем код, сохраняем токены пользователя у себя.
+app.get("/collabis/callback", async (req, res) => {
+  const { state, codeVerifier } = req.session.collabis
+  if (req.query.state !== state) throw new Error("state mismatch")
+  const tokens = await oauth.exchangeCode({ code: req.query.code, codeVerifier })
+  await db.saveCollabisTokens(req.user.id, tokens) // access_token + refresh_token
+  res.redirect("/settings")
+})
+
+// Позже, когда пользователь запускает расшифровку — берём ЕГО токены и заливаем.
+async function uploadMeetingForUser(userId: string, meeting: MeetingTranscript) {
+  const stored = await db.getCollabisTokens(userId)
+  const collabis = new Client({
+    auth: createTokenProvider({
+      oauth,
+      refreshToken: stored.refresh_token,
+      initialAccessToken: stored.access_token,
+      onRefresh: (t) => db.saveCollabisTokens(userId, t), // токены могут ротироваться
+    }),
+  })
+  await collabis.pages.create(/* … встреча пользователя … */)
+}
+```
+
+Ключевые моменты:
+
+- **Ровно то, что вы описали**: ваш сервис формирует ссылку → пользователь жмёт кнопку →
+  открывается Collabis → он авторизуется → вы получаете **его** `access_token` и
+  `refresh_token` → дальше при каждой расшифровке используете их автоматически.
+- Для серверного веб-приложения `redirect_uri` — ваш `https`-адрес (loopback `127.0.0.1`
+  нужен только для локального CLI). `state` и `codeVerifier` храните в сессии пользователя
+  между переходом и колбэком.
+- Токен и OAuth **разделяемы**: можно вообще не использовать `OAuthClient` внутри рантайма и
+  создавать `Client` просто со строкой токена, полученной где угодно; либо, наоборот,
+  выдавать токены через `OAuthClient` независимо от `Client`.
+
+## Быстрый старт
 
 ```ts
 import { Client } from "@collabis/client"
 
 const collabis = new Client({ auth: process.env.COLLABIS_TOKEN })
 
-// Create a page
+// Создать страницу
 const { id } = await collabis.pages.create({
   parent: { type: "section_id", section_id: "private" },
   title: "Roadmap",
 })
 
-// Read its content (whole subtree in one call — no N+1)
+// Прочитать её содержимое (всё поддерево одним вызовом — без N+1)
 const { results } = await collabis.blocks.children.list({ block_id: id, depth: "all" })
 
-// Search the workspace
+// Поиск по воркспейсу
 const hits = await collabis.search({ query: "roadmap" })
 ```
 
-## Usage
+## Использование
 
-### Pages
+### Страницы
 
 ```ts
 await collabis.pages.create({ parent, title, properties, icon, cover, children })
@@ -120,30 +185,30 @@ await collabis.pages.move({ page_id, parent: { type: "workspace" } })
 await collabis.pages.duplicate({ page_id })
 ```
 
-`parent` is one of `{ type: "page_id", page_id }`, `{ type: "database_id", database_id }`
-(create a database row), or `{ type: "section_id", section_id: "all" | "private" | "shared" }`.
+`parent` — один из `{ type: "page_id", page_id }`, `{ type: "database_id", database_id }`
+(создать строку базы) или `{ type: "section_id", section_id: "all" | "private" | "shared" }`.
 
-### Blocks
+### Блоки
 
 ```ts
 await collabis.blocks.retrieve({ block_id })
 await collabis.blocks.update({ block_id, type: "paragraph", paragraph: { rich_text: [...] } })
 await collabis.blocks.delete({ block_id })
 
-// depth: "all" (default) returns the full subtree in document order; "1" is top-level only.
+// depth: "all" (по умолчанию) отдаёт всё поддерево в документном порядке; "1" — только верхний уровень.
 await collabis.blocks.children.list({ block_id, depth: "all" })
 
-// Append (≤100 blocks per call)
+// Добавить (≤100 блоков за вызов)
 await collabis.blocks.children.append({ block_id, children: [...] })
 
-// Replace all children (snapshot overwrite)
+// Заменить всех детей (перезапись снапшотом)
 await collabis.blocks.children.replace({ block_id, children: [...] })
 ```
 
-Writes are capped at **100 blocks per request**. To write more, append in chunks — see the
-[meeting-sync example](./examples/meeting-sync) for a ready-made helper.
+Запись ограничена **100 блоками на запрос**. Чтобы записать больше — добавляйте частями
+(чанками); готовый хелпер есть в [примере meeting-sync](./examples/meeting-sync).
 
-### Databases
+### Базы данных
 
 ```ts
 const db = await collabis.databases.create({
@@ -157,7 +222,7 @@ const db = await collabis.databases.create({
   },
 })
 
-// A row is a page whose parent is the database:
+// Строка — это страница, у которой родитель — база данных:
 await collabis.pages.create({
   parent: { type: "database_id", database_id: db.id },
   title: "Write docs",
@@ -168,7 +233,7 @@ await collabis.pages.create({
   },
 })
 
-// Query with filters + sorts (compound and/or supported):
+// Запрос с фильтрами и сортировками (поддерживаются вложенные and/or):
 const open = await collabis.databases.query({
   database_id: db.id,
   filter: { property: "Status", operator: "equals", value: "Todo" },
@@ -176,11 +241,11 @@ const open = await collabis.databases.query({
 })
 ```
 
-Property values are typed (`{ <type>: value }`); `title` / `text` / `rich_text` also accept
-a plain string. Schema updates are declarative: in `databases.update`, a `null` value deletes
-a column, an unknown key adds one, a known key updates it.
+Значения свойств типизированы (`{ <type>: value }`); `title` / `text` / `rich_text` также
+принимают обычную строку. Изменение схемы декларативно: в `databases.update` значение `null`
+удаляет колонку, неизвестный ключ добавляет её, известный — обновляет.
 
-### Views
+### Представления
 
 ```ts
 await collabis.databases.views.list({ database_id })
@@ -197,19 +262,19 @@ await collabis.databases.views.update({
 })
 ```
 
-### Search
+### Поиск
 
 ```ts
-await collabis.search({ query: "keyword" }) // workspace keyword search
-await collabis.search({ database_id }) // enumerate database rows
-await collabis.search({ parent_page_id }) // enumerate child pages
-await collabis.search({ section: "shared" }) // enumerate a sidebar section
+await collabis.search({ query: "keyword" }) // поиск по ключевым словам в воркспейсе
+await collabis.search({ database_id }) // перечислить строки базы
+await collabis.search({ parent_page_id }) // перечислить дочерние страницы
+await collabis.search({ section: "shared" }) // перечислить раздел сайдбара
 ```
 
-## Block & rich-text builders
+## Билдеры блоков и форматированного текста
 
-`block.*` returns fully-typed `BlockObjectRequest` values so you don't hand-write the verbose
-JSON:
+`block.*` возвращает полностью типизированные значения `BlockObjectRequest`, чтобы не писать
+громоздкий JSON руками:
 
 ```ts
 import { block, text, link } from "@collabis/client"
@@ -232,14 +297,14 @@ const body = [
 ]
 ```
 
-Available: `paragraph`, `heading1/2/3`, `bulletedListItem`, `numberedListItem`, `toDo`,
+Доступны: `paragraph`, `heading1/2/3`, `bulletedListItem`, `numberedListItem`, `toDo`,
 `toggle`, `quote`, `code`, `divider`, `equation`, `callout`, `bookmark`, `table`, `tableRow`,
-`column`, `columnList`. Container builders accept `{ children }`.
+`column`, `columnList`. Контейнерные билдеры принимают `{ children }`.
 
-## Pagination
+## Пагинация
 
-`search`, `blocks.children.list`, and `databases.query` are cursor-paginated. Iterate or
-collect them without managing cursors yourself:
+`search`, `blocks.children.list` и `databases.query` используют курсорную пагинацию. Можно
+итерироваться или собрать всё, не управляя курсорами вручную:
 
 ```ts
 import { iteratePaginatedAPI, collectPaginatedAPI } from "@collabis/client"
@@ -251,9 +316,9 @@ for await (const row of iteratePaginatedAPI(collabis.databases.query, { database
 const allHits = await collectPaginatedAPI(collabis.search, { query: "onboarding" })
 ```
 
-## Error handling
+## Обработка ошибок
 
-Every failure throws a typed error. Narrow with the guards:
+Любой сбой бросает типизированную ошибку. Сужайте тип через гварды:
 
 ```ts
 import { APIResponseError, APIErrorCode, isCollabisClientError } from "@collabis/client"
@@ -267,44 +332,47 @@ try {
       /* … */
     }
   } else if (isCollabisClientError(error)) {
-    // RequestTimeoutError or UnknownHTTPResponseError (timeout / non-JSON response)
+    // RequestTimeoutError или UnknownHTTPResponseError (таймаут / ответ не в JSON)
   }
 }
 ```
 
-`APIErrorCode` values: `invalid_request`, `unauthorized`, `insufficient_scope`, `not_found`,
+Значения `APIErrorCode`: `invalid_request`, `unauthorized`, `insufficient_scope`, `not_found`,
 `payload_too_large`, `unprocessable`, `rate_limited`, `upstream_error`, `upstream_timeout`,
 `upstream_rejected`, `partial_write`, `internal_error`.
 
-## Client options
+## Опции клиента
 
 ```ts
 new Client({
-  auth: "…", // OAuth bearer access token
-  baseUrl: "https://api.collabis.ru", // default
-  timeoutMs: 60_000, // per-request timeout
+  auth: "…", // OAuth bearer-токен доступа
+  baseUrl: "https://api.collabis.ru", // по умолчанию
+  timeoutMs: 60_000, // таймаут на запрос
   logLevel: LogLevel.WARN, // DEBUG | INFO | WARN | ERROR
-  logger: (level, msg, extra) => {}, // custom logger
-  fetch: myFetch, // custom fetch implementation
-  retry: { maxRetries: 3, initialDelayMs: 500, maxDelayMs: 8_000 }, // or `false`
-  headers: { "x-trace-id": "…" }, // extra headers on every request
+  logger: (level, msg, extra) => {}, // свой логгер
+  fetch: myFetch, // своя реализация fetch
+  retry: { maxRetries: 3, initialDelayMs: 500, maxDelayMs: 8_000 }, // или `false`
+  headers: { "x-trace-id": "…" }, // доп. заголовки в каждый запрос
 })
 ```
 
-Retries apply to `429`, `502`, `503`, `504` and network/timeout errors, with exponential
-backoff + jitter and `Retry-After` support.
+Повторы применяются к `429`, `502`, `503`, `504` и сетевым/таймаут-ошибкам, с экспоненциальным
+backoff + jitter и поддержкой `Retry-After`.
 
-For endpoints not yet wrapped, call the low-level `client.request<T>({ method, path, query, body })`.
+Для эндпоинтов, ещё не обёрнутых методами, есть низкоуровневый
+`client.request<T>({ method, path, query, body })`.
 
-## Examples
+## Примеры
 
-- [**meeting-sync**](./examples/meeting-sync) — push a voice-meeting transcript into Collabis,
-  both as a **subpage** under a parent page and as a **database row** with typed properties.
-  This is the reference for note-taking / transcription integrations.
+- [**meeting-sync**](./examples/meeting-sync) — выгрузка расшифровки голосовой встречи в
+  Collabis: и как **подстраница** под родительской страницей, и как **строка базы данных** с
+  типизированными свойствами. Референс для интеграций заметок / расшифровок.
+- [**oauth-cli**](./examples/oauth-cli) — получение токена доступа через флоу OAuth 2.1 + PKCE
+  (loopback), с динамической регистрацией клиента.
 
-## API coverage
+## Покрытие API
 
-| Method                    | Endpoint                                   |
+| Метод                     | Эндпоинт                                   |
 | ------------------------- | ------------------------------------------ |
 | `search`                  | `GET /v1/search`                           |
 | `pages.create`            | `POST /v1/pages`                           |
@@ -326,6 +394,6 @@ For endpoints not yet wrapped, call the low-level `client.request<T>({ method, p
 | `databases.views.create`  | `POST /v1/databases/{id}/views`            |
 | `databases.views.update`  | `PATCH /v1/databases/{id}/views/{view_id}` |
 
-## License
+## Лицензия
 
 [MIT](./LICENSE)

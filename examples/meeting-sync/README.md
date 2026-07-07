@@ -1,24 +1,24 @@
-# Meeting sync example
+# Пример meeting-sync
 
-Reference integration for **voice-transcription partners** — the Collabis equivalent of the
-Fireflies → Notion flow. After a meeting ends, its transcript and summary are written into
-Collabis in one of two shapes:
+Референс-интеграция для **партнёров по расшифровке голоса** — как сервисы вроде Fireflies
+выгружают заметки о встречах в рабочее пространство, только для Collabis. После завершения
+встречи её расшифровка и краткое содержание записываются в Collabis одним из двух способов:
 
-| Script          | Result                                                   | Analogy                         |
-| --------------- | -------------------------------------------------------- | ------------------------------- |
-| `sync:subpage`  | A **subpage** under a chosen parent page                 | What Fireflies does with Notion |
-| `sync:database` | A **row** in a "Meetings" database with typed properties | More structured / queryable     |
+| Скрипт          | Результат                                                 | Аналогия                             |
+| --------------- | --------------------------------------------------------- | ------------------------------------ |
+| `sync:subpage`  | **Подстраница** под выбранной родительской страницей      | Как это делает Fireflies             |
+| `sync:database` | **Строка** в базе «Meetings» с типизированными свойствами | Более структурно / можно запрашивать |
 
-Both write the same body: a summary callout, meeting details, key points, action items as
-checkboxes, a bookmark to the recording, and the full transcript (appended in ≤100-block
-chunks so long transcripts don't hit the per-request limit).
+Оба пишут одинаковое тело: callout с кратким содержанием, детали встречи, ключевые пункты,
+задачи в виде чекбоксов, закладку на запись и полную расшифровку (добавляется частями по
+≤100 блоков, чтобы длинные расшифровки не упирались в лимит на запрос).
 
-## What a synced meeting looks like
+## Как выглядит синхронизированная встреча
 
 ```
 🎙️  Public API launch sync — 2026-07-07
 ┌────────────────────────────────────────────┐
-│ 📝  The team confirmed the public REST API… │  ← callout (summary)
+│ 📝  The team confirmed the public REST API… │  ← callout (краткое содержание)
 └────────────────────────────────────────────┘
 Details
  • Date: Tue, 07 Jul 2026 10:00:00 GMT
@@ -37,26 +37,28 @@ Transcript
  …
 ```
 
-## Run it
+## Запуск
 
 ```sh
-cp .env.example .env      # fill in COLLABIS_TOKEN and COLLABIS_PARENT_PAGE_ID
+cp .env.example .env      # заполните COLLABIS_TOKEN и COLLABIS_PARENT_PAGE_ID
 npm install
-npm run sync:subpage      # or: npm run sync:database
+npm run sync:subpage      # или: npm run sync:database
 ```
 
-`COLLABIS_TOKEN` is an OAuth 2.1 bearer access token whose audience is `https://api.collabis.ru`
-(use `COLLABIS_BASE_URL=https://api.collabis.ru` to target stage). `COLLABIS_PARENT_PAGE_ID`
-is the page that will receive the subpage (or hold the Meetings database).
+`COLLABIS_TOKEN` — это OAuth 2.1 bearer-токен доступа, у которого audience равен
+`https://api.collabis.ru` (для стейджа задайте `COLLABIS_BASE_URL=https://api.collabis.ru`).
+`COLLABIS_PARENT_PAGE_ID` — страница, которая примет подстраницу (или будет держать базу
+«Meetings»).
 
-Don't have a token yet? Get one with the [oauth-cli example](../oauth-cli) (`npm run login`),
-which runs the OAuth 2.1 + PKCE flow and prints an access token. A production integration would
-instead store the refresh token and pass `createTokenProvider(...)` as the client's `auth` so it
-refreshes on its own.
+Ещё нет токена? Получите его через [пример oauth-cli](../oauth-cli) (`npm run login`) — он
+выполняет флоу OAuth 2.1 + PKCE и печатает токен доступа. Продакшн-интеграция вместо этого
+хранит refresh-токен и передаёт `createTokenProvider(...)` в `auth` клиента, чтобы он
+обновлялся сам.
 
-## Wiring your provider
+## Подключение вашего провайдера
 
-Map your provider's post-meeting webhook payload into the [`MeetingTranscript`](./src/meeting.ts)
-shape, then call `syncMeetingToSubpage(...)` or `syncMeetingToDatabase(...)`. The
-[`format.ts`](./src/format.ts) module turns a `MeetingTranscript` into Collabis blocks — that's
-the only piece you'd customize for your layout.
+Смапьте payload вебхука вашего провайдера (после встречи) в форму
+[`MeetingTranscript`](./src/meeting.ts), затем вызовите `syncMeetingToSubpage(...)` или
+`syncMeetingToDatabase(...)`. Модуль [`format.ts`](./src/format.ts) превращает
+`MeetingTranscript` в блоки Collabis — это единственная часть, которую вы кастомизируете под
+свою вёрстку.
