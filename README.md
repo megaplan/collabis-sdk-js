@@ -28,7 +28,7 @@ await collabis.pages.create({
 npm install @collabis/client
 ```
 
-Требуется **Node.js 18+** (используется глобальный `fetch`). Работает в любой среде с
+Требуется **Node.js 20+** (используются глобальные `fetch` и Web Crypto). Работает в любой среде с
 `fetch` по стандарту WHATWG; иначе передайте свой через опцию `fetch`.
 
 ## Аутентификация

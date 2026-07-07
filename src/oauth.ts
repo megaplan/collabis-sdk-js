@@ -109,7 +109,7 @@ interface MinimalCrypto {
 function webCrypto(): MinimalCrypto {
   const c = (globalThis as { crypto?: MinimalCrypto }).crypto
   if (!c || !c.subtle) {
-    throw new Error("Web Crypto is unavailable. Use Node 18+ or a browser for the PKCE helpers.")
+    throw new Error("Web Crypto is unavailable. Use Node 20+ or a browser for the PKCE helpers.")
   }
   return c
 }
@@ -171,7 +171,7 @@ export class OAuthClient {
         ? (globalThis.fetch.bind(globalThis) as unknown as SupportedFetch)
         : undefined)
     if (!fetchImpl) {
-      throw new Error("No fetch implementation found. Use Node 18+, or pass a `fetch` option.")
+      throw new Error("No fetch implementation found. Use Node 20+, or pass a `fetch` option.")
     }
     this.#fetch = fetchImpl
   }

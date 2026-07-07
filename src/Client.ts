@@ -85,7 +85,7 @@ export interface ClientOptions {
   logLevel?: LogLevel
   /** Custom logger; defaults to a `console`-based one. */
   logger?: Logger
-  /** Custom `fetch`. Defaults to the global `fetch` (Node 18+ / browsers). */
+  /** Custom `fetch`. Defaults to the global `fetch` (Node 20+ / browsers). */
   fetch?: SupportedFetch
   /** Retry policy for transient failures. Pass `false` to disable retries. */
   retry?: RetryOptions | false
@@ -147,7 +147,7 @@ export class Client {
         : undefined)
     if (!fetchImpl) {
       throw new Error(
-        "No fetch implementation found. Use Node 18+, or pass a `fetch` option to the Client.",
+        "No fetch implementation found. Use Node 20+, or pass a `fetch` option to the Client.",
       )
     }
     this.#fetch = fetchImpl
