@@ -1,0 +1,72 @@
+name: Release
+
+# Публикует @collabis/client в npm автоматически: на каждый пуш в main
+# прогоняет полный набор проверок и, если версия из package.json ещё не
+# опубликована, делает npm publish + git-тег + GitHub Release. Чтобы выпустить
+# новую версию — смержите PR, который поднимает "version" в package.json.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # создать git-тег и GitHub Release
+      id-token: write # npm provenance (публичный репозиторий)
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+      # Публикуем только если такой версии ещё нет в реестре.
+      - name: Determine version
+        id: v
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "$NAME@$VERSION уже опубликован — пропускаю."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "$NAME@$VERSION ещё не опубликован — публикую."
+          fi
+
+      - name: Publish to npm
+        if: steps.v.outputs.published == 'false' && env.NPM_TOKEN != ''
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag and GitHub Release
+        if: steps.v.outputs.published == 'false' && env.NPM_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.v.outputs.version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --title "$TAG" --generate-notes
+
+      - name: Notice (no NPM_TOKEN)
+        if: steps.v.outputs.published == 'false' && env.NPM_TOKEN == ''
+        run: echo "::warning::NPM_TOKEN secret не задан — публикация пропущена. Добавьте секрет в Settings → Secrets → Actions."
