@@ -1,9 +1,9 @@
 name: Release
 
-# Публикует @collabis/client в npm автоматически: на каждый пуш в main
-# прогоняет полный набор проверок и, если версия из package.json ещё не
-# опубликована, делает npm publish + git-тег + GitHub Release. Чтобы выпустить
-# новую версию — смержите PR, который поднимает "version" в package.json.
+# Публикует @collabis/client в npm автоматически. Сначала job `test` прогоняет
+# сборку и тесты на матрице Node; job `publish` запускается только при их успехе
+# (needs: test) и публикует, если версия из package.json ещё не в реестре. Чтобы
+# выпустить новую версию — смержите PR, поднимающий "version" в package.json.
 
 on:
   push:
@@ -15,7 +15,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+  publish:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write # создать git-тег и GitHub Release
@@ -29,12 +47,7 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
           cache: npm
-
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
 
       # Публикуем только если такой версии ещё нет в реестре.
       - name: Determine version
@@ -51,6 +64,7 @@ jobs:
             echo "$NAME@$VERSION ещё не опубликован — публикую."
           fi
 
+      # npm publish сам соберёт dist через prepublishOnly.
       - name: Publish to npm
         if: steps.v.outputs.published == 'false' && env.NPM_TOKEN != ''
         run: npm publish --access public --provenance

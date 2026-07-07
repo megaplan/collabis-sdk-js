@@ -46,7 +46,7 @@ npm run sync:subpage      # или: npm run sync:database
 ```
 
 `COLLABIS_TOKEN` — это OAuth 2.1 bearer-токен доступа, у которого audience равен
-`https://api.collabis.ru` (для стейджа задайте `COLLABIS_BASE_URL=https://api.collabis.ru`).
+`https://api.collabis.ru` (origin API при необходимости переопределяется через `COLLABIS_BASE_URL`).
 `COLLABIS_PARENT_PAGE_ID` — страница, которая примет подстраницу (или будет держать базу
 «Meetings»).
 

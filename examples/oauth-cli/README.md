@@ -25,8 +25,8 @@ export COLLABIS_TOKEN=<напечатанный токен доступа>
 ```
 
 Collabis — **публичный клиент** (без client secret): безопасность обеспечивают PKCE и привязка
-audience через `resource=https://api.collabis.ru`. Для стейджа задайте
-`COLLABIS_ISSUER=https://collabis.ru` и `COLLABIS_RESOURCE=https://api.collabis.ru`.
+audience через `resource=https://api.collabis.ru`. Для другого окружения задайте
+`COLLABIS_ISSUER` и `COLLABIS_RESOURCE`.
 
 ## Долгоживущие интеграции
 

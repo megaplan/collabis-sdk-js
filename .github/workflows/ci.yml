@@ -1,8 +1,8 @@
 name: CI
 
+# Проверки на pull request. Пуши в main прогоняются в workflow Release
+# (job `test`), чтобы не дублировать матрицу.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
